@@ -1,5 +1,5 @@
 import streamlit as st
-import google.generativeai as genai
+import anthropic
 import time
 import json
 from io import BytesIO
@@ -19,9 +19,10 @@ from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 pdfmetrics.registerFont(UnicodeCIDFont("STSong-Light"))
 
 # ─────────────────────────────────────────────
-# Gemini init
+# Anthropic init
 # ─────────────────────────────────────────────
-genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+def get_client():
+    return anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
 
 # ─────────────────────────────────────────────
 # Page config
@@ -285,11 +286,15 @@ def get_ai_advice(cat_id, gpu_id, brand_id, qty, use_case):
 客戶用途：{use_case if use_case else '未填寫'}
 
 請給出針對此配置的採購建議。"""
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    client = get_client()
     result = []
-    for chunk in model.generate_content(prompt, stream=True):
-        if chunk.text:
-            result.append(chunk.text)
+    with client.messages.stream(
+        model="claude-sonnet-4-20250514",
+        max_tokens=500,
+        messages=[{"role": "user", "content": prompt}],
+    ) as stream:
+        for text in stream.text_stream:
+            result.append(text)
             yield "".join(result)
 
 # ─────────────────────────────────────────────
@@ -626,13 +631,17 @@ elif "AI 需求顧問" in tab:
             st.session_state.ai_chat = [{"role": "user", "content": user_input}]
             placeholder = st.empty()
             result = []
-            model = genai.GenerativeModel("gemini-2.0-flash")
-            for chunk in model.generate_content(prompt, stream=True):
-                if chunk.text:
-                    result.append(chunk.text)
+            client = get_client()
+            with client.messages.stream(
+                model="claude-sonnet-4-20250514",
+                max_tokens=800,
+                messages=[{"role": "user", "content": prompt}],
+            ) as stream:
+                for text in stream.text_stream:
+                    result.append(text)
                     txt = "".join(result)
                     placeholder.markdown(
-                        f'<div class="ai-block"><div class="ai-tag">GEMINI AI · 需求分析</div><div class="ai-text">{txt.replace(chr(10), "<br/>")}</div></div>',
+                        f'<div class="ai-block"><div class="ai-tag">CLAUDE AI · 需求分析</div><div class="ai-text">{txt.replace(chr(10), "<br/>")}</div></div>',
                         unsafe_allow_html=True
                     )
             st.session_state.ai_chat.append({"role": "assistant", "content": "".join(result)})
@@ -642,7 +651,7 @@ elif "AI 需求顧問" in tab:
     if st.session_state.ai_chat and len(st.session_state.ai_chat) >= 2:
         response = st.session_state.ai_chat[-1]["content"]
         st.markdown(
-            f'<div class="ai-block"><div class="ai-tag">GEMINI AI · 需求分析</div><div class="ai-text">{response.replace(chr(10), "<br/>")}</div></div>',
+            f'<div class="ai-block"><div class="ai-tag">CLAUDE AI · 需求分析</div><div class="ai-text">{response.replace(chr(10), "<br/>")}</div></div>',
             unsafe_allow_html=True
         )
         st.info("想直接下載這個建議的 PDF？切換到「配置與報價」頁面完成配置後下載。")
