@@ -17,7 +17,12 @@ from reportlab.pdfbase.cidfonts import UnicodeCIDFont
 # Fonts
 # ─────────────────────────────────────────────
 pdfmetrics.registerFont(UnicodeCIDFont("STSong-Light"))
-pdfmetrics.registerFont(UnicodeCIDFont("STSong-Light"))
+
+# ─────────────────────────────────────────────
+# Anthropic init
+# ─────────────────────────────────────────────
+def get_client():
+    return anthropic.Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
 
 # ─────────────────────────────────────────────
 # Page config
@@ -30,156 +35,340 @@ st.set_page_config(
 )
 
 # ─────────────────────────────────────────────
-# CSS — DM Serif + DM Mono, #f5f7ff base, #1a2040 ink
+# CSS — Dark Tech Command Center
+# Orbitron + Share Tech Mono · #0a0e1a base · #00ff88 neon accent
 # ─────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600&display=swap');
 
-html, body, [data-testid="stAppViewContainer"] {
-    background: #f5f7ff !important;
-    color: #1a2040 !important;
-    font-family: 'DM Sans', sans-serif !important;
+/* ── GLOBAL ── */
+html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
+    background: #0a0e1a !important;
+    color: #c8d8e8 !important;
+    font-family: 'Exo 2', sans-serif !important;
 }
+
+/* Grid overlay on main background */
+[data-testid="stAppViewContainer"]::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Scanline overlay */
+[data-testid="stAppViewContainer"]::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.08) 2px,
+        rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ── SIDEBAR ── */
 [data-testid="stSidebar"] {
-    background: #ffffff !important;
-    border-right: 1.5px solid #dde3f5 !important;
+    background: #060910 !important;
+    border-right: 1px solid #00ff8830 !important;
+    box-shadow: 4px 0 24px rgba(0,255,136,0.06) !important;
 }
-[data-testid="stSidebar"] * { font-family: 'DM Sans', sans-serif !important; }
-[data-testid="stSidebar"] .st-emotion-cache-16txtl3 { padding: 2rem 1rem !important; }
+[data-testid="stSidebar"] * {
+    font-family: 'Share Tech Mono', monospace !important;
+    color: #8aaabb !important;
+}
+[data-testid="stSidebar"] label {
+    color: #00ff88 !important;
+    font-size: 12px !important;
+    letter-spacing: 1px !important;
+}
+/* Sidebar radio selected */
+[data-testid="stSidebar"] [data-testid="stRadio"] label[data-selected="true"],
+[data-testid="stSidebar"] .st-emotion-cache-1inwz65 {
+    color: #00ff88 !important;
+}
 
-/* Headers */
-h1, h2, h3 { font-family: 'DM Serif Display', serif !important; color: #1a2040 !important; }
-.stMarkdown p, .stText { font-family: 'DM Sans', sans-serif !important; }
+/* ── HEADERS ── */
+h1 {
+    font-family: 'Orbitron', monospace !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    letter-spacing: 2px !important;
+    text-shadow: 0 0 20px rgba(0,255,136,0.4) !important;
+}
+h2, h3 {
+    font-family: 'Orbitron', monospace !important;
+    color: #c8d8e8 !important;
+    font-weight: 500 !important;
+    letter-spacing: 1px !important;
+}
 
-/* Inputs */
-input, select, textarea { font-family: 'DM Sans', sans-serif !important; }
+/* ── INPUTS ── */
+input, select, textarea {
+    font-family: 'Share Tech Mono', monospace !important;
+    color: #c8d8e8 !important;
+}
 [data-testid="stSelectbox"] > div > div,
-[data-testid="stNumberInput"] input,
 [data-testid="stTextInput"] input,
 [data-testid="stTextArea"] textarea {
-    border: 1.5px solid #dde3f5 !important;
-    border-radius: 8px !important;
-    background: #ffffff !important;
-    color: #1a2040 !important;
-    font-family: 'DM Sans', sans-serif !important;
+    background: #0d1320 !important;
+    border: 1px solid #1e3a4a !important;
+    border-radius: 4px !important;
+    color: #00ff88 !important;
+    font-family: 'Share Tech Mono', monospace !important;
+    font-size: 13px !important;
 }
 [data-testid="stSelectbox"] > div > div:focus-within,
-[data-testid="stNumberInput"] input:focus,
 [data-testid="stTextInput"] input:focus,
 [data-testid="stTextArea"] textarea:focus {
-    border-color: #4f5fb8 !important;
-    box-shadow: 0 0 0 3px rgba(79,95,184,0.12) !important;
+    border-color: #00ff88 !important;
+    box-shadow: 0 0 12px rgba(0,255,136,0.2) !important;
 }
 
-/* Slider */
-[data-testid="stSlider"] .st-emotion-cache-1dp5vir { background: #1a2040 !important; }
+/* ── SLIDER ── */
+[data-testid="stSlider"] [role="slider"] {
+    background: #00ff88 !important;
+    box-shadow: 0 0 10px rgba(0,255,136,0.6) !important;
+}
+[data-testid="stSlider"] .st-emotion-cache-1dp5vir,
+[data-testid="stSlider"] [data-baseweb="slider"] div[role="progressbar"] {
+    background: #00ff88 !important;
+}
+[data-testid="stSlider"] p {
+    font-family: 'Share Tech Mono', monospace !important;
+    color: #00ff88 !important;
+}
 
-/* Buttons */
+/* ── BUTTONS ── */
 .stButton > button {
-    font-family: 'DM Sans', sans-serif !important;
-    border-radius: 8px !important;
-    font-weight: 500 !important;
-    transition: all 0.15s ease !important;
+    font-family: 'Orbitron', monospace !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 1.5px !important;
+    border-radius: 3px !important;
+    transition: all 0.2s ease !important;
+    text-transform: uppercase !important;
 }
 .stButton > button[kind="primary"] {
-    background: #1a2040 !important;
-    color: #ffffff !important;
-    border: none !important;
+    background: transparent !important;
+    color: #00ff88 !important;
+    border: 1px solid #00ff88 !important;
+    box-shadow: 0 0 12px rgba(0,255,136,0.2), inset 0 0 12px rgba(0,255,136,0.05) !important;
 }
-.stButton > button[kind="primary"]:hover { background: #2c3460 !important; }
+.stButton > button[kind="primary"]:hover {
+    background: rgba(0,255,136,0.1) !important;
+    box-shadow: 0 0 24px rgba(0,255,136,0.4), inset 0 0 20px rgba(0,255,136,0.1) !important;
+}
 .stButton > button[kind="secondary"] {
-    background: #ffffff !important;
-    color: #1a2040 !important;
-    border: 1.5px solid #1a2040 !important;
+    background: transparent !important;
+    color: #5af0c0 !important;
+    border: 1px solid #1e3a4a !important;
 }
-.stButton > button[kind="secondary"]:hover { background: #f5f7ff !important; }
+.stButton > button[kind="secondary"]:hover {
+    border-color: #00ff88 !important;
+    color: #00ff88 !important;
+}
 
-/* Download button */
+/* ── DOWNLOAD BUTTON ── */
 [data-testid="stDownloadButton"] > button {
-    font-family: 'DM Sans', sans-serif !important;
-    border-radius: 8px !important;
-    background: #ffffff !important;
-    color: #1a2040 !important;
-    border: 1.5px solid #1a2040 !important;
-    font-weight: 500 !important;
+    font-family: 'Orbitron', monospace !important;
+    font-size: 11px !important;
+    letter-spacing: 1.5px !important;
+    border-radius: 3px !important;
+    background: transparent !important;
+    color: #5af0c0 !important;
+    border: 1px solid #1e3a4a !important;
+    text-transform: uppercase !important;
 }
-[data-testid="stDownloadButton"] > button:hover { background: #f5f7ff !important; }
+[data-testid="stDownloadButton"] > button:hover {
+    border-color: #00ff88 !important;
+    color: #00ff88 !important;
+    box-shadow: 0 0 12px rgba(0,255,136,0.2) !important;
+}
 
-/* Metric cards */
+/* ── METRICS ── */
 [data-testid="stMetric"] {
-    background: #ffffff !important;
-    border: 0.5px solid #dde3f5 !important;
-    border-radius: 10px !important;
-    padding: 16px 18px !important;
+    background: #0d1320 !important;
+    border: 1px solid #1e3a4a !important;
+    border-radius: 4px !important;
+    padding: 14px 16px !important;
+    position: relative !important;
+    overflow: hidden !important;
 }
-[data-testid="stMetricLabel"] { font-family: 'DM Mono', monospace !important; font-size: 11px !important; color: #6b7299 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; }
-[data-testid="stMetricValue"] { font-family: 'DM Serif Display', serif !important; font-size: 28px !important; color: #1a2040 !important; }
+[data-testid="stMetric"]::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #00ff88, transparent);
+}
+[data-testid="stMetricLabel"] {
+    font-family: 'Share Tech Mono', monospace !important;
+    font-size: 10px !important;
+    color: #4a7a8a !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1.5px !important;
+}
+[data-testid="stMetricValue"] {
+    font-family: 'Orbitron', monospace !important;
+    font-size: 22px !important;
+    color: #00ff88 !important;
+    text-shadow: 0 0 10px rgba(0,255,136,0.4) !important;
+}
+[data-testid="stMetricDelta"] { font-family: 'Share Tech Mono', monospace !important; }
 
-/* Info / warning boxes */
-[data-testid="stInfo"], [data-testid="stWarning"], [data-testid="stSuccess"] {
-    border-radius: 10px !important;
-    font-family: 'DM Sans', sans-serif !important;
+/* ── ALERTS ── */
+[data-testid="stInfo"] {
+    background: #0a1a2a !important;
+    border: 1px solid #1e5a7a !important;
+    border-radius: 4px !important;
+    color: #5af0c0 !important;
+}
+[data-testid="stWarning"] {
+    background: #1a1200 !important;
+    border: 1px solid #ff8800 !important;
+    border-radius: 4px !important;
+}
+[data-testid="stSuccess"] {
+    background: #001a0f !important;
+    border: 1px solid #00ff88 !important;
+    border-radius: 4px !important;
+}
+[data-testid="stError"] {
+    background: #1a0008 !important;
+    border: 1px solid #ff3366 !important;
+    border-radius: 4px !important;
 }
 
-/* Expander */
+/* ── EXPANDER ── */
 [data-testid="stExpander"] {
-    border: 0.5px solid #dde3f5 !important;
-    border-radius: 10px !important;
-    background: #ffffff !important;
+    background: #0d1320 !important;
+    border: 1px solid #1e3a4a !important;
+    border-radius: 4px !important;
+}
+[data-testid="stExpander"] summary {
+    font-family: 'Share Tech Mono', monospace !important;
+    color: #5af0c0 !important;
 }
 
-/* Divider */
-hr { border-color: #dde3f5 !important; }
+/* ── TABLES ── */
+[data-testid="stTable"] table {
+    background: #0d1320 !important;
+    border: 1px solid #1e3a4a !important;
+    font-family: 'Share Tech Mono', monospace !important;
+    font-size: 12px !important;
+}
+[data-testid="stTable"] th {
+    background: #060910 !important;
+    color: #4a7a8a !important;
+    border-bottom: 1px solid #00ff8830 !important;
+    font-family: 'Share Tech Mono', monospace !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    font-size: 10px !important;
+}
+[data-testid="stTable"] td {
+    color: #c8d8e8 !important;
+    border-bottom: 1px solid #1e3a4a !important;
+}
+[data-testid="stTable"] tr:hover td { background: #1e3a4a40 !important; }
 
-/* Code / mono */
-code { font-family: 'DM Mono', monospace !important; font-size: 12px !important; }
+/* ── DIVIDER ── */
+hr { border-color: #1e3a4a !important; }
 
-/* AI block */
+/* ── RADIO ── */
+[data-testid="stRadio"] label {
+    font-family: 'Share Tech Mono', monospace !important;
+    font-size: 12px !important;
+    color: #8aaabb !important;
+}
+
+/* ── SELECT SLIDER ── */
+[data-testid="stSlider"] {
+    font-family: 'Share Tech Mono', monospace !important;
+}
+
+/* ── AI BLOCK ── */
 .ai-block {
-    background: linear-gradient(180deg, #e8edff 0%, #f5f7ff 100%);
-    border: 1px solid #b8c5ff;
-    border-radius: 10px;
+    background: linear-gradient(135deg, #001a0f 0%, #0a1a10 100%);
+    border: 1px solid #00ff8840;
+    border-left: 3px solid #00ff88;
+    border-radius: 4px;
     padding: 16px 18px;
     margin: 8px 0 14px;
+    position: relative;
+    overflow: hidden;
+}
+.ai-block::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+        0deg, transparent, transparent 3px,
+        rgba(0,255,136,0.015) 3px, rgba(0,255,136,0.015) 4px
+    );
+    pointer-events: none;
 }
 .ai-tag {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: #4f5fb8;
-    letter-spacing: 1.5px;
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    color: #00ff88;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    margin-bottom: 8px;
-}
-.ai-text { font-size: 14px; color: #1a2040; line-height: 1.6; }
-
-/* Section title */
-.sec-title {
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: #6b7299;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 12px;
-}
-
-/* Badge */
-.badge-new { background: #e0e8ff; color: #2c3caa; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-family: 'DM Mono', monospace; }
-.badge-follow { background: #fff3cd; color: #7a5500; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-family: 'DM Mono', monospace; }
-.badge-quoted { background: #d4edda; color: #155724; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-family: 'DM Mono', monospace; }
-.badge-won { background: #1a2040; color: #ffffff; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-family: 'DM Mono', monospace; }
-
-/* Lead card */
-.lead-card {
-    background: #ffffff;
-    border: 0.5px solid #dde3f5;
-    border-radius: 10px;
-    padding: 14px 18px;
     margin-bottom: 10px;
-    cursor: pointer;
-    transition: box-shadow 0.15s;
+    opacity: 0.8;
 }
-.lead-card:hover { box-shadow: 0 4px 16px rgba(26,32,64,0.08); }
+.ai-text {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: #a0d8b8;
+    line-height: 1.7;
+}
+
+/* ── SECTION TITLE ── */
+.sec-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 9px;
+    color: #4a7a8a;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #1e3a4a;
+}
+
+/* ── BADGES ── */
+.badge-new    { background: #001a3a; color: #5af0ff; border: 1px solid #1e5a8a; padding: 2px 8px; border-radius: 2px; font-size: 10px; font-family: 'Share Tech Mono', monospace; letter-spacing: 1px; }
+.badge-follow { background: #1a1000; color: #ffaa00; border: 1px solid #5a4000; padding: 2px 8px; border-radius: 2px; font-size: 10px; font-family: 'Share Tech Mono', monospace; letter-spacing: 1px; }
+.badge-quoted { background: #001a10; color: #00ff88; border: 1px solid #1e5a3a; padding: 2px 8px; border-radius: 2px; font-size: 10px; font-family: 'Share Tech Mono', monospace; letter-spacing: 1px; }
+.badge-won    { background: #00ff88; color: #001a0f; border: 1px solid #00ff88; padding: 2px 8px; border-radius: 2px; font-size: 10px; font-family: 'Orbitron', monospace; font-weight: 700; letter-spacing: 1px; }
+
+/* ── TOTAL CARDS CALLOUT ── */
+.cards-callout {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    color: #00ff88;
+    margin-top: 6px;
+    padding: 6px 10px;
+    background: rgba(0,255,136,0.05);
+    border-left: 2px solid #00ff88;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; background: #060910; }
+::-webkit-scrollbar-thumb { background: #1e3a4a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #00ff8860; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -222,6 +411,7 @@ def init_state():
         "quantity":  8,
         "use_case":  "",
         "ai_advice": "",
+        "cards_per_unit": 8,
         "leads":     [
             {"id":"L001","name":"陳俊宏","company":"奧義智慧","cat":"Vast.AI 託管","gpu":"H200×4","price":"USD 12K/月","status":"follow","use_case":"推論服務上線","time":"3 小時前"},
             {"id":"L002","name":"Sarah Chen","company":"Stealth AI","cat":"A20 伺服器","gpu":"B200×16","price":"需報價","status":"follow","use_case":"大規模訓練","time":"昨天"},
@@ -281,7 +471,7 @@ def get_ai_advice(cat_id, gpu_id, brand_id, qty, use_case):
 客戶用途：{use_case if use_case else '未填寫'}
 
 請給出針對此配置的採購建議。"""
-    client = anthropic.Anthropic()
+    client = get_client()
     result = []
     with client.messages.stream(
         model="claude-sonnet-4-20250514",
@@ -417,23 +607,25 @@ def build_pdf(cat_id, gpu_id, brand_id, qty, use_case, contact_name, contact_com
 # ─────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
-    <div style='margin-bottom: 6px;'>
-      <span style='font-family: "DM Serif Display", serif; font-size: 22px; color: #1a2040;'>A20 Quote</span>
+    <div style='margin-bottom: 4px; padding-top: 8px;'>
+      <span style='font-family: "Orbitron", monospace; font-size: 20px; font-weight: 900; color: #00ff88; text-shadow: 0 0 20px rgba(0,255,136,0.5); letter-spacing: 3px;'>A20</span>
+      <span style='font-family: "Orbitron", monospace; font-size: 14px; font-weight: 400; color: #5af0c0; letter-spacing: 2px; margin-left: 6px;'>QUOTE</span>
     </div>
-    <div style='font-family: "DM Mono", monospace; font-size: 11px; color: #6b7299; margin-bottom: 24px;'>GPU · 伺服器 · 雲端算力</div>
+    <div style='font-family: "Share Tech Mono", monospace; font-size: 10px; color: #2a5a4a; margin-bottom: 6px; letter-spacing: 1px;'>▶ SYSTEM ONLINE</div>
+    <div style='font-family: "Share Tech Mono", monospace; font-size: 10px; color: #4a7a8a; margin-bottom: 20px; letter-spacing: 0.5px;'>GPU · 伺服器 · 雲端算力</div>
     """, unsafe_allow_html=True)
 
     tab = st.radio(
         "導航",
-        ["📊  配置與報價", "🤖  AI 需求顧問", "📥  Lead 收件匣", "📈  業績儀表板"],
+        ["⬡  配置與報價", "◈  AI 需求顧問", "◉  Lead 收件匣", "▦  業績儀表板"],
         label_visibility="collapsed",
     )
 
     st.markdown("---")
     st.markdown("""
-    <div style='font-family: "DM Mono", monospace; font-size: 10px; color: #b0b8d8; line-height: 1.8;'>
-    A20 Research Lab<br>
-    v0.1 · prototype<br>
+    <div style='font-family: "Share Tech Mono", monospace; font-size: 10px; color: #2a4a5a; line-height: 2;'>
+    A20 RESEARCH LAB<br>
+    v0.1 · PROTOTYPE<br>
     sales@a20.ai
     </div>
     """, unsafe_allow_html=True)
@@ -443,7 +635,7 @@ with st.sidebar:
 # ─────────────────────────────────────────────
 if "配置與報價" in tab:
     st.markdown("# 配置與報價")
-    st.markdown('<p style="font-family: \'DM Mono\', monospace; font-size: 12px; color: #6b7299; margin-top: -12px; margin-bottom: 24px;">A20 · GPU2.COM · DGX · Vast.AI</p>', unsafe_allow_html=True)
+    st.markdown('<p style="font-family: \'Share Tech Mono\', monospace; font-size: 11px; color: #2a5a4a; margin-top: -12px; margin-bottom: 24px; letter-spacing: 1px;">▶ A20 · GPU2.COM · DGX · VAST.AI</p>', unsafe_allow_html=True)
 
     col_form, col_summary = st.columns([3, 2], gap="large")
 
@@ -484,15 +676,40 @@ if "配置與報價" in tab:
 
         # Step 4
         cat = get_cat(st.session_state.cat_id)
-        unit = "卡" if cat["id"] in ["cloud", "vast"] else "台"
-        st.markdown(f'<div class="sec-title" style="margin-top: 20px;">04 · 數量（{unit}）</div>', unsafe_allow_html=True)
-        st.session_state.quantity = st.slider(
-            "數量", min_value=1, max_value=64,
-            value=st.session_state.quantity, label_visibility="collapsed"
-        )
+        is_cloud = cat["id"] in ["cloud", "vast"]
 
-        # Step 5 — use case
-        st.markdown('<div class="sec-title" style="margin-top: 20px;">05 · 用途描述（選填）</div>', unsafe_allow_html=True)
+        if is_cloud:
+            # 雲端/Vast：只有卡數 slider
+            st.markdown('<div class="sec-title" style="margin-top: 20px;">04 · 卡數</div>', unsafe_allow_html=True)
+            st.session_state.quantity = st.slider(
+                "卡數", min_value=1, max_value=64,
+                value=st.session_state.quantity, label_visibility="collapsed"
+            )
+            total_cards = st.session_state.quantity
+            st.session_state.total_cards = total_cards
+        else:
+            # 實體伺服器：台數 + 每台幾卡
+            st.markdown('<div class="sec-title" style="margin-top: 20px;">04 · 台數</div>', unsafe_allow_html=True)
+            st.session_state.quantity = st.slider(
+                "台數", min_value=1, max_value=32,
+                value=st.session_state.quantity, label_visibility="collapsed"
+            )
+            st.markdown('<div class="sec-title" style="margin-top: 16px;">05 · 每台卡數</div>', unsafe_allow_html=True)
+            cards_options = [1, 2, 4, 8, 10, 16]
+            cpu_idx = cards_options.index(st.session_state.cards_per_unit) if st.session_state.cards_per_unit in cards_options else 3
+            st.session_state.cards_per_unit = st.select_slider(
+                "每台卡數", options=cards_options,
+                value=cards_options[cpu_idx], label_visibility="collapsed"
+            )
+            total_cards = st.session_state.quantity * st.session_state.cards_per_unit
+            st.markdown(
+                f'<div style="font-family: \'DM Mono\', monospace; font-size: 12px; color: #4f5fb8; margin-top: 6px;">總計 {st.session_state.quantity} 台 × {st.session_state.cards_per_unit} 卡 = <strong>{total_cards} 卡</strong></div>',
+                unsafe_allow_html=True
+            )
+        st.session_state.total_cards = total_cards
+
+        # Step 6 — use case
+        st.markdown('<div class="sec-title" style="margin-top: 20px;">06 · 用途描述（選填）</div>', unsafe_allow_html=True)
         st.session_state.use_case = st.text_area(
             "用途", value=st.session_state.use_case,
             placeholder="例：訓練 70B 多模態模型，預計 3 個月內擴張到 32 卡規模",
@@ -500,7 +717,8 @@ if "配置與報價" in tab:
         )
 
     with col_summary:
-        q = calc_quote(st.session_state.cat_id, st.session_state.gpu_id, st.session_state.brand_id, st.session_state.quantity)
+        total_cards = st.session_state.get("total_cards", st.session_state.quantity)
+        q = calc_quote(st.session_state.cat_id, st.session_state.gpu_id, st.session_state.brand_id, total_cards)
 
         st.markdown('<div class="sec-title">即時估價</div>', unsafe_allow_html=True)
 
@@ -553,7 +771,7 @@ if "配置與報價" in tab:
             if st.button("📄 下載 PDF", use_container_width=True):
                 pdf = build_pdf(
                     st.session_state.cat_id, st.session_state.gpu_id,
-                    st.session_state.brand_id, st.session_state.quantity,
+                    st.session_state.brand_id, total_cards,
                     st.session_state.use_case, contact_name, contact_company,
                     st.session_state.ai_advice
                 )
@@ -572,12 +790,15 @@ if "配置與報價" in tab:
                 else:
                     gpu = get_gpu(st.session_state.gpu_id)
                     cat = get_cat(st.session_state.cat_id)
+                    gpu_label = f"{gpu['label']}×{total_cards}"
+                    if cat["id"] not in ["cloud", "vast"]:
+                        gpu_label += f"（{st.session_state.quantity}台×{st.session_state.cards_per_unit}卡）"
                     new_lead = {
                         "id": f"L{len(st.session_state.leads)+1:03d}",
                         "name": contact_name,
                         "company": contact_company or "—",
                         "cat": cat["label"],
-                        "gpu": f"{gpu['label']}×{st.session_state.quantity}",
+                        "gpu": gpu_label,
                         "price": fmt_usd(q["total"]) if not q["block"] else "需報價",
                         "status": "new",
                         "use_case": st.session_state.use_case or "未填寫",
@@ -626,7 +847,7 @@ elif "AI 需求顧問" in tab:
             st.session_state.ai_chat = [{"role": "user", "content": user_input}]
             placeholder = st.empty()
             result = []
-            client = anthropic.Anthropic()
+            client = get_client()
             with client.messages.stream(
                 model="claude-sonnet-4-20250514",
                 max_tokens=800,
