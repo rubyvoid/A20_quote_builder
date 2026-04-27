@@ -227,6 +227,7 @@ def init_state():
         "quantity":  8,
         "use_case":  "",
         "ai_advice": "",
+        "cards_per_unit": 8,
         "leads":     [
             {"id":"L001","name":"陳俊宏","company":"奧義智慧","cat":"Vast.AI 託管","gpu":"H200×4","price":"USD 12K/月","status":"follow","use_case":"推論服務上線","time":"3 小時前"},
             {"id":"L002","name":"Sarah Chen","company":"Stealth AI","cat":"A20 伺服器","gpu":"B200×16","price":"需報價","status":"follow","use_case":"大規模訓練","time":"昨天"},
@@ -489,15 +490,40 @@ if "配置與報價" in tab:
 
         # Step 4
         cat = get_cat(st.session_state.cat_id)
-        unit = "卡" if cat["id"] in ["cloud", "vast"] else "台"
-        st.markdown(f'<div class="sec-title" style="margin-top: 20px;">04 · 數量（{unit}）</div>', unsafe_allow_html=True)
-        st.session_state.quantity = st.slider(
-            "數量", min_value=1, max_value=64,
-            value=st.session_state.quantity, label_visibility="collapsed"
-        )
+        is_cloud = cat["id"] in ["cloud", "vast"]
 
-        # Step 5 — use case
-        st.markdown('<div class="sec-title" style="margin-top: 20px;">05 · 用途描述（選填）</div>', unsafe_allow_html=True)
+        if is_cloud:
+            # 雲端/Vast：只有卡數 slider
+            st.markdown('<div class="sec-title" style="margin-top: 20px;">04 · 卡數</div>', unsafe_allow_html=True)
+            st.session_state.quantity = st.slider(
+                "卡數", min_value=1, max_value=64,
+                value=st.session_state.quantity, label_visibility="collapsed"
+            )
+            total_cards = st.session_state.quantity
+            st.session_state.total_cards = total_cards
+        else:
+            # 實體伺服器：台數 + 每台幾卡
+            st.markdown('<div class="sec-title" style="margin-top: 20px;">04 · 台數</div>', unsafe_allow_html=True)
+            st.session_state.quantity = st.slider(
+                "台數", min_value=1, max_value=32,
+                value=st.session_state.quantity, label_visibility="collapsed"
+            )
+            st.markdown('<div class="sec-title" style="margin-top: 16px;">05 · 每台卡數</div>', unsafe_allow_html=True)
+            cards_options = [1, 2, 4, 8, 10, 16]
+            cpu_idx = cards_options.index(st.session_state.cards_per_unit) if st.session_state.cards_per_unit in cards_options else 3
+            st.session_state.cards_per_unit = st.select_slider(
+                "每台卡數", options=cards_options,
+                value=cards_options[cpu_idx], label_visibility="collapsed"
+            )
+            total_cards = st.session_state.quantity * st.session_state.cards_per_unit
+            st.markdown(
+                f'<div style="font-family: \'DM Mono\', monospace; font-size: 12px; color: #4f5fb8; margin-top: 6px;">總計 {st.session_state.quantity} 台 × {st.session_state.cards_per_unit} 卡 = <strong>{total_cards} 卡</strong></div>',
+                unsafe_allow_html=True
+            )
+        st.session_state.total_cards = total_cards
+
+        # Step 6 — use case
+        st.markdown('<div class="sec-title" style="margin-top: 20px;">06 · 用途描述（選填）</div>', unsafe_allow_html=True)
         st.session_state.use_case = st.text_area(
             "用途", value=st.session_state.use_case,
             placeholder="例：訓練 70B 多模態模型，預計 3 個月內擴張到 32 卡規模",
@@ -505,7 +531,8 @@ if "配置與報價" in tab:
         )
 
     with col_summary:
-        q = calc_quote(st.session_state.cat_id, st.session_state.gpu_id, st.session_state.brand_id, st.session_state.quantity)
+        total_cards = st.session_state.get("total_cards", st.session_state.quantity)
+        q = calc_quote(st.session_state.cat_id, st.session_state.gpu_id, st.session_state.brand_id, total_cards)
 
         st.markdown('<div class="sec-title">即時估價</div>', unsafe_allow_html=True)
 
@@ -558,7 +585,7 @@ if "配置與報價" in tab:
             if st.button("📄 下載 PDF", use_container_width=True):
                 pdf = build_pdf(
                     st.session_state.cat_id, st.session_state.gpu_id,
-                    st.session_state.brand_id, st.session_state.quantity,
+                    st.session_state.brand_id, total_cards,
                     st.session_state.use_case, contact_name, contact_company,
                     st.session_state.ai_advice
                 )
@@ -577,12 +604,15 @@ if "配置與報價" in tab:
                 else:
                     gpu = get_gpu(st.session_state.gpu_id)
                     cat = get_cat(st.session_state.cat_id)
+                    gpu_label = f"{gpu['label']}×{total_cards}"
+                    if cat["id"] not in ["cloud", "vast"]:
+                        gpu_label += f"（{st.session_state.quantity}台×{st.session_state.cards_per_unit}卡）"
                     new_lead = {
                         "id": f"L{len(st.session_state.leads)+1:03d}",
                         "name": contact_name,
                         "company": contact_company or "—",
                         "cat": cat["label"],
-                        "gpu": f"{gpu['label']}×{st.session_state.quantity}",
+                        "gpu": gpu_label,
                         "price": fmt_usd(q["total"]) if not q["block"] else "需報價",
                         "status": "new",
                         "use_case": st.session_state.use_case or "未填寫",
