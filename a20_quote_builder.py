@@ -285,7 +285,7 @@ def get_ai_advice(cat_id, gpu_id, brand_id, qty, use_case):
 客戶用途：{use_case if use_case else '未填寫'}
 
 請給出針對此配置的採購建議。"""
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    model = genai.GenerativeModel("gemini-2.0-flash")
     result = []
     for chunk in model.generate_content(prompt, stream=True):
         if chunk.text:
@@ -626,7 +626,7 @@ elif "AI 需求顧問" in tab:
             st.session_state.ai_chat = [{"role": "user", "content": user_input}]
             placeholder = st.empty()
             result = []
-            model = genai.GenerativeModel("gemini-1.5-flash")
+            model = genai.GenerativeModel("gemini-2.0-flash")
             for chunk in model.generate_content(prompt, stream=True):
                 if chunk.text:
                     result.append(chunk.text)
